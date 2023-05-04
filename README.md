@@ -121,7 +121,7 @@ pip install -r requirements.txt
 After completing the installation, you can use SnooGrab as follows:
 
 ```bash
-python redvid-dl.py --url https://www.reddit.com/r/subreddit/post/ --output downloaded_video.mp4
+python snoograb.py --url https://www.reddit.com/r/subreddit/post/ --output downloaded_video.mp4
 ```
 Replace the example Reddit URL with the URL of the video you want to download, and change the output filename if desired.
 
