@@ -117,7 +117,7 @@ Navigate to the cloned or extracted repository folder in your terminal or comman
 pip install -r requirements.txt
 ```
 
-### Usage
+## Usage
 After completing the installation, you can use SnooGrab as follows:
 
 ```bash
@@ -125,5 +125,5 @@ python redvid-dl.py --url https://www.reddit.com/r/subreddit/post/ --output down
 ```
 Replace the example Reddit URL with the URL of the video you want to download, and change the output filename if desired.
 
-### License
+## License
 This project is licensed under the GNU General Public License v3.0. See the LICENSE file for details.
