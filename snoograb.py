@@ -8,10 +8,8 @@ from praw import Reddit
 # To get your own client ID and secret, create a Reddit app here:
 # https://www.reddit.com/prefs/apps
 # Then, replace the values below with your own.
-# CLIENT_ID = 'your_client_id'
-# CLIENT_SECRET = 'your_client_secret'
-CLIENT_ID = '8iREmybdAObfeOcuytbAyA'
-CLIENT_SECRET = 'BNc1wqzMwjq9sv9c4C1lyJ14oUYmdw'
+CLIENT_ID = 'your_client_id'
+CLIENT_SECRET = 'your_client_secret'
 USER_AGENT = 'SnooGrab:v1.0 (by u/Marcuskac)'
 
 reddit = Reddit(client_id=CLIENT_ID,
