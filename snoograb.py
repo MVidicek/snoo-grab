@@ -5,9 +5,13 @@ import argparse
 import subprocess
 from praw import Reddit
 
-CLIENT_ID = 'your_client_id'
-CLIENT_SECRET = 'your_client_secret'
-# e.g., 'video_downloader:v1.0 (by u/your_username)'
+# To get your own client ID and secret, create a Reddit app here:
+# https://www.reddit.com/prefs/apps
+# Then, replace the values below with your own.
+# CLIENT_ID = 'your_client_id'
+# CLIENT_SECRET = 'your_client_secret'
+CLIENT_ID = '8iREmybdAObfeOcuytbAyA'
+CLIENT_SECRET = 'BNc1wqzMwjq9sv9c4C1lyJ14oUYmdw'
 USER_AGENT = 'SnooGrab:v1.0 (by u/Marcuskac)'
 
 reddit = Reddit(client_id=CLIENT_ID,
@@ -74,8 +78,8 @@ def main():
             download_video(video_url, video_file)
             download_video(audio_url, audio_file)
 
-            output_filename = os.path.join(
-                output_directory, f"{reddit_url.split('/')[-1]}.mp4")
+            post_id = reddit_url.strip('/').split('/')[-1]
+            output_filename = os.path.join(output_directory, f"{post_id}.mp4")
             merge_video_audio(video_file, audio_file, output_filename)
 
             os.remove(video_file)
