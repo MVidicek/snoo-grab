@@ -120,10 +120,12 @@ pip install -r requirements.txt
 ## Usage
 After completing the installation, you can use SnooGrab as follows:
 
+Open the input.txt file and enter the reddit urls in separate lines, after that run the script as shown below.
+
 ```bash
-python snoograb.py --url https://www.reddit.com/r/subreddit/post/ --output downloaded_video.mp4
+python snoograb.py --input input.txt --output downloads
 ```
-Replace the example Reddit URL with the URL of the video you want to download, and change the output filename if desired.
+Where the --output argument specifies the download folder, and the --input argument specifies the filename of the .txt file that holds the url list.
 
 ## License
 This project is licensed under the GNU General Public License v3.0. See the LICENSE file for details.
