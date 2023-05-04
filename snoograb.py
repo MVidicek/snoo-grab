@@ -55,26 +55,35 @@ def merge_video_audio(video_file, audio_file, output_file):
 
 def main():
     args = parse_arguments()
-    reddit_url = args.url
-    output_filename = args.output
+    input_file = args.input
+    output_directory = args.output
 
-    video_url, audio_url = get_video_url(reddit_url)
+    if not os.path.exists(output_directory):
+        os.makedirs(output_directory)
 
-    if video_url and audio_url:
-        video_file = "temp_video.mp4"
-        audio_file = "temp_audio.mp4"
+    reddit_urls = read_input_file(input_file)
 
-        download_video(video_url, video_file)
-        download_video(audio_url, audio_file)
+    for reddit_url in reddit_urls:
+        print(f"Processing {reddit_url}")
+        video_url, audio_url = get_video_url(reddit_url)
 
-        merge_video_audio(video_file, audio_file, output_filename)
+        if video_url and audio_url:
+            video_file = os.path.join(output_directory, "temp_video.mp4")
+            audio_file = os.path.join(output_directory, "temp_audio.mp4")
 
-        os.remove(video_file)
-        os.remove(audio_file)
+            download_video(video_url, video_file)
+            download_video(audio_url, audio_file)
 
-        print(f"Video downloaded with audio as {output_filename}")
-    else:
-        print("Unable to download video and audio.")
+            output_filename = os.path.join(
+                output_directory, f"{reddit_url.split('/')[-1]}.mp4")
+            merge_video_audio(video_file, audio_file, output_filename)
+
+            os.remove(video_file)
+            os.remove(audio_file)
+
+            print(f"Video downloaded with audio as {output_filename}")
+        else:
+            print(f"Unable to download video and audio for {reddit_url}")
 
 
 if __name__ == "__main__":
