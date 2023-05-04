@@ -25,6 +25,12 @@ def parse_arguments():
     return parser.parse_args()
 
 
+def read_input_file(input_file):
+    with open(input_file, 'r') as f:
+        urls = [line.strip() for line in f.readlines()]
+    return urls
+
+
 def download_video(url, file_name):
     response = requests.get(url)
     with open(file_name, 'wb') as f:
