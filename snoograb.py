@@ -3,6 +3,7 @@ import re
 import requests
 import argparse
 import subprocess
+from tqdm import tqdm
 from praw import Reddit
 
 # To get your own client ID and secret, create a Reddit app here:
@@ -33,10 +34,15 @@ def read_input_file(input_file):
     return urls
 
 
-def download_video(url, file_name):
-    response = requests.get(url)
-    with open(file_name, 'wb') as f:
-        f.write(response.content)
+def download_video(url, output_file):
+    response = requests.get(url, stream=True)
+    total_size = int(response.headers.get('content-length', 0))
+
+    with open(output_file, 'wb') as f:
+        with tqdm(total=total_size, unit='B', unit_scale=True, desc=output_file, ncols=100) as progress_bar:
+            for data in response.iter_content(1024):
+                f.write(data)
+                progress_bar.update(len(data))
 
 
 def get_video_url(reddit_url):
@@ -51,8 +57,17 @@ def get_video_url(reddit_url):
 
 
 def merge_video_audio(video_file, audio_file, output_file):
-    command = f'ffmpeg -y -i {video_file} -i {audio_file} -c:v copy -c:a aac {output_file}'
-    subprocess.call(command, shell=True)
+    command = [
+        'ffmpeg',
+        '-i', video_file,
+        '-i', audio_file,
+        '-c:v', 'copy',
+        '-c:a', 'aac',
+        '-strict', 'experimental',
+        '-loglevel', 'error',
+        output_file
+    ]
+    subprocess.run(command, check=True)
 
 
 def main():
