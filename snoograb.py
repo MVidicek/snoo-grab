@@ -1,10 +1,10 @@
 import os
-import re
 import requests
-import argparse
 import subprocess
+import tkinter as tk
 from tqdm import tqdm
 from praw import Reddit
+from tkinter import filedialog
 
 # To get your own client ID and secret, create a Reddit app here:
 # https://www.reddit.com/prefs/apps
@@ -17,15 +17,15 @@ reddit = Reddit(client_id=CLIENT_ID,
                 client_secret=CLIENT_SECRET, user_agent=USER_AGENT)
 
 
-def parse_arguments():
-    parser = argparse.ArgumentParser(
-        description='Download videos from Reddit links.')
-    parser.add_argument('-i', '--input', type=str, required=True,
-                        help='The input file containing Reddit URLs, one per line.')
-    parser.add_argument('-o', '--output', type=str, default='downloads',
-                        help='The output directory for the downloaded videos.')
+def browse_input_file():
+    input_file = filedialog.askopenfilename(
+        filetypes=[('Text Files', '*.txt')])
+    input_file_var.set(input_file)
 
-    return parser.parse_args()
+
+def browse_output_folder():
+    output_folder = filedialog.askdirectory()
+    output_folder_var.set(output_folder)
 
 
 def read_input_file(input_file):
@@ -70,10 +70,9 @@ def merge_video_audio(video_file, audio_file, output_file):
     subprocess.run(command, check=True)
 
 
-def main():
-    args = parse_arguments()
-    input_file = args.input
-    output_directory = args.output
+def start_download():
+    input_file = input_file_var.get()
+    output_directory = output_folder_var.get()
 
     if not os.path.exists(output_directory):
         os.makedirs(output_directory)
@@ -103,5 +102,39 @@ def main():
             print(f"Unable to download video and audio for {reddit_url}")
 
 
-if __name__ == "__main__":
-    main()
+# Create the main window
+root = tk.Tk()
+root.title("SnooGrab")
+
+# Create and add input file widgets
+input_file_label = tk.Label(root, text="Input File:")
+input_file_label.grid(row=0, column=0, padx=(10, 5), pady=(10, 0), sticky="w")
+
+input_file_var = tk.StringVar()
+input_file_entry = tk.Entry(root, textvariable=input_file_var, width=40)
+input_file_entry.grid(row=0, column=1, padx=(0, 5), pady=(10, 0))
+
+input_file_button = tk.Button(root, text="Browse", command=browse_input_file)
+input_file_button.grid(row=0, column=2, padx=(0, 10), pady=(10, 0))
+
+# Create and add output folder widgets
+output_folder_label = tk.Label(root, text="Output Folder:")
+output_folder_label.grid(row=1, column=0, padx=(10, 5),
+                         pady=(10, 0), sticky="w")
+
+output_folder_var = tk.StringVar()
+output_folder_entry = tk.Entry(root, textvariable=output_folder_var, width=40)
+output_folder_entry.grid(row=1, column=1, padx=(0, 5), pady=(10, 0))
+
+output_folder_button = tk.Button(
+    root, text="Browse", command=browse_output_folder)
+output_folder_button.grid(row=1, column=2, padx=(0, 10), pady=(10, 0))
+
+# Create and add start download button
+start_download_button = tk.Button(
+    root, text="Start Download", command=start_download)
+start_download_button.grid(
+    row=2, column=0, columnspan=3, padx=10, pady=(10, 10))
+
+# Start the application
+root.mainloop()
