@@ -3,8 +3,7 @@ import requests
 import subprocess
 import praw
 import tkinter as tk
-from tqdm import tqdm
-from praw import Reddit
+from tkinter import ttk
 from tkinter import filedialog
 
 reddit = praw.Reddit()
@@ -26,15 +25,19 @@ def read_input_file(input_file):
     return urls
 
 
-def download_video(url, output_file):
+def download_video(url, output_file, progress_callback=None):
     response = requests.get(url, stream=True)
     total_size = int(response.headers.get('content-length', 0))
 
+    downloaded_size = 0
     with open(output_file, 'wb') as f:
-        with tqdm(total=total_size, unit='B', unit_scale=True, desc=output_file, ncols=100) as progress_bar:
-            for data in response.iter_content(1024):
-                f.write(data)
-                progress_bar.update(len(data))
+        for data in response.iter_content(1024):
+            f.write(data)
+            downloaded_size += len(data)
+            progress = (downloaded_size / total_size) * 100
+            if progress_callback:
+                progress_callback(
+                    progress, f"Downloading {output_file}: {progress:.2f}%")
 
 
 def get_video_url(reddit_url):
@@ -67,6 +70,15 @@ def start_download():
 
     reddit_urls = get_urls_from_textbox()
 
+    def update_progress(progress, text):
+        progress_bar.delete("all")  # Clear the canvas
+        progress_bar_width = progress * (window_width / 100)
+        progress_bar.create_rectangle(
+            0, 0, progress_bar_width, 20, fill="blue")  # Draw the progress bar
+        progress_bar.create_text(window_width / 2, 10, text=text,
+                                 fill="white", font=("Helvetica", 10))  # Draw the text
+        root.update_idletasks()
+
     for reddit_url in reddit_urls:
         print(f"Processing {reddit_url}")
         video_url, audio_url = get_video_url(reddit_url)
@@ -75,8 +87,10 @@ def start_download():
             video_file = os.path.join(output_directory, "temp_video.mp4")
             audio_file = os.path.join(output_directory, "temp_audio.mp4")
 
-            download_video(video_url, video_file)
-            download_video(audio_url, audio_file)
+            download_video(video_url, video_file, lambda p,
+                           t: update_progress(p, t))
+            download_video(audio_url, audio_file, lambda p,
+                           t: update_progress(p, t))
 
             post_id = reddit_url.strip('/').split('/')[-1]
             output_filename = os.path.join(output_directory, f"{post_id}.mp4")
@@ -91,8 +105,11 @@ def start_download():
 
 
 # Create the main window
+window_width = 720
+window_height = 300
 root = tk.Tk()
 root.title("SnooGrab")
+root.geometry(f"{window_width}x{window_height}")
 
 # Create and add URL entry textbox
 url_label = tk.Label(root, text="Enter URLs (one per line):")
@@ -120,12 +137,17 @@ output_folder_button = tk.Button(
     root, text="Browse", command=browse_output_folder)
 output_folder_button.grid(row=2, column=2, padx=(0, 10), pady=(10, 0))
 
-
 # Create and add start download button
 start_download_button = tk.Button(
     root, text="Start Download", command=start_download)
 start_download_button.grid(
     row=3, column=0, columnspan=3, padx=10, pady=(10, 10))
+
+# Add this code after the "start_button" widget
+progress_bar = tk.Canvas(root, width=window_width,
+                         height=20, bg="white", highlightthickness=0)
+progress_bar.grid(row=4, column=0, columnspan=3,
+                  padx=10, pady=(10, 0), sticky="ew")
 
 # Start the application
 root.mainloop()
