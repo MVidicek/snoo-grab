@@ -1,31 +1,23 @@
 import os
 import requests
 import subprocess
+import praw
 import tkinter as tk
 from tqdm import tqdm
 from praw import Reddit
 from tkinter import filedialog
 
-# To get your own client ID and secret, create a Reddit app here:
-# https://www.reddit.com/prefs/apps
-# Then, replace the values below with your own.
-CLIENT_ID = 'your_client_id'
-CLIENT_SECRET = 'your_client_secret'
-USER_AGENT = 'SnooGrab:v1.0 (by u/Marcuskac)'
-
-reddit = Reddit(client_id=CLIENT_ID,
-                client_secret=CLIENT_SECRET, user_agent=USER_AGENT)
-
-
-def browse_input_file():
-    input_file = filedialog.askopenfilename(
-        filetypes=[('Text Files', '*.txt')])
-    input_file_var.set(input_file)
+reddit = praw.Reddit()
 
 
 def browse_output_folder():
-    output_folder = filedialog.askdirectory()
-    output_folder_var.set(output_folder)
+    output_directory = filedialog.askdirectory()
+    output_directory_var.set(output_directory)
+
+
+def get_urls_from_textbox():
+    urls = url_textbox.get("1.0", tk.END).splitlines()
+    return [url for url in urls if url.strip()]
 
 
 def read_input_file(input_file):
@@ -71,13 +63,9 @@ def merge_video_audio(video_file, audio_file, output_file):
 
 
 def start_download():
-    input_file = input_file_var.get()
-    output_directory = output_folder_var.get()
+    output_directory = output_directory_var.get()
 
-    if not os.path.exists(output_directory):
-        os.makedirs(output_directory)
-
-    reddit_urls = read_input_file(input_file)
+    reddit_urls = get_urls_from_textbox()
 
     for reddit_url in reddit_urls:
         print(f"Processing {reddit_url}")
@@ -106,35 +94,38 @@ def start_download():
 root = tk.Tk()
 root.title("SnooGrab")
 
-# Create and add input file widgets
-input_file_label = tk.Label(root, text="Input File:")
-input_file_label.grid(row=0, column=0, padx=(10, 5), pady=(10, 0), sticky="w")
+# Create and add URL entry textbox
+url_label = tk.Label(root, text="Enter URLs (one per line):")
+url_label.grid(row=0, column=0, padx=(10, 5), pady=(10, 0), sticky="w")
 
-input_file_var = tk.StringVar()
-input_file_entry = tk.Entry(root, textvariable=input_file_var, width=40)
-input_file_entry.grid(row=0, column=1, padx=(0, 5), pady=(10, 0))
+url_textbox = tk.Text(root, wrap=tk.WORD, width=50, height=10)
+url_textbox.grid(row=0, column=1, padx=(0, 5), pady=(10, 0), rowspan=2)
 
-input_file_button = tk.Button(root, text="Browse", command=browse_input_file)
-input_file_button.grid(row=0, column=2, padx=(0, 10), pady=(10, 0))
+url_textbox_scrollbar = tk.Scrollbar(root, command=url_textbox.yview)
+url_textbox_scrollbar.grid(row=0, column=2, padx=(
+    0, 10), pady=(10, 0), rowspan=2, sticky="ns")
+url_textbox.config(yscrollcommand=url_textbox_scrollbar.set)
 
 # Create and add output folder widgets
 output_folder_label = tk.Label(root, text="Output Folder:")
-output_folder_label.grid(row=1, column=0, padx=(10, 5),
+output_folder_label.grid(row=2, column=0, padx=(10, 5),
                          pady=(10, 0), sticky="w")
 
-output_folder_var = tk.StringVar()
-output_folder_entry = tk.Entry(root, textvariable=output_folder_var, width=40)
-output_folder_entry.grid(row=1, column=1, padx=(0, 5), pady=(10, 0))
+output_directory_var = tk.StringVar()
+output_folder_entry = tk.Entry(
+    root, textvariable=output_directory_var, width=40)
+output_folder_entry.grid(row=2, column=1, padx=(0, 5), pady=(10, 0))
 
 output_folder_button = tk.Button(
     root, text="Browse", command=browse_output_folder)
-output_folder_button.grid(row=1, column=2, padx=(0, 10), pady=(10, 0))
+output_folder_button.grid(row=2, column=2, padx=(0, 10), pady=(10, 0))
+
 
 # Create and add start download button
 start_download_button = tk.Button(
     root, text="Start Download", command=start_download)
 start_download_button.grid(
-    row=2, column=0, columnspan=3, padx=10, pady=(10, 10))
+    row=3, column=0, columnspan=3, padx=10, pady=(10, 10))
 
 # Start the application
 root.mainloop()
