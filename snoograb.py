@@ -2,21 +2,10 @@ import os
 import requests
 import subprocess
 import praw
-import tkinter as tk
-from tkinter import ttk
-from tkinter import filedialog
+from PyQt6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QHBoxLayout, QLabel, QTextEdit, QLineEdit, QPushButton, QProgressBar, QFileDialog, QWidget
+from PyQt6.QtCore import Qt, QThread, pyqtSignal
 
 reddit = praw.Reddit()
-
-
-def browse_output_folder():
-    output_directory = filedialog.askdirectory()
-    output_directory_var.set(output_directory)
-
-
-def get_urls_from_textbox():
-    urls = url_textbox.get("1.0", tk.END).splitlines()
-    return [url for url in urls if url.strip()]
 
 
 def read_input_file(input_file):
@@ -65,89 +54,107 @@ def merge_video_audio(video_file, audio_file, output_file):
     subprocess.run(command, check=True)
 
 
-def start_download():
-    output_directory = output_directory_var.get()
+class DownloadThread(QThread):
+    progress = pyqtSignal(int, str)
 
-    reddit_urls = get_urls_from_textbox()
+    def __init__(self, reddit_urls, output_directory, parent=None):
+        QThread.__init__(self, parent)
+        self.reddit_urls = reddit_urls
+        self.output_directory = output_directory
 
-    def update_progress(progress, text):
-        progress_bar.delete("all")  # Clear the canvas
-        progress_bar_width = progress * (window_width / 100)
-        progress_bar.create_rectangle(
-            0, 0, progress_bar_width, 20, fill="blue")  # Draw the progress bar
-        progress_bar.create_text(window_width / 2, 10, text=text,
-                                 fill="white", font=("Helvetica", 10))  # Draw the text
-        root.update_idletasks()
+    def run(self):
+        def update_progress(progress, text):
+            self.progress.emit(progress, text)
 
-    for reddit_url in reddit_urls:
-        print(f"Processing {reddit_url}")
-        video_url, audio_url = get_video_url(reddit_url)
+        for reddit_url in self.reddit_urls:
+            update_progress(0, f"Processing {reddit_url}")
+            video_url, audio_url = get_video_url(reddit_url)
 
-        if video_url and audio_url:
-            video_file = os.path.join(output_directory, "temp_video.mp4")
-            audio_file = os.path.join(output_directory, "temp_audio.mp4")
+            if video_url and audio_url:
+                video_file = os.path.join(
+                    self.output_directory, "temp_video.mp4")
+                audio_file = os.path.join(
+                    self.output_directory, "temp_audio.mp4")
 
-            download_video(video_url, video_file, lambda p,
-                           t: update_progress(p, t))
-            download_video(audio_url, audio_file, lambda p,
-                           t: update_progress(p, t))
+                download_video(video_url, video_file, lambda p,
+                               t: update_progress(p, t))
+                download_video(audio_url, audio_file, lambda p,
+                               t: update_progress(p, t))
 
-            post_id = reddit_url.strip('/').split('/')[-1]
-            output_filename = os.path.join(output_directory, f"{post_id}.mp4")
-            merge_video_audio(video_file, audio_file, output_filename)
+                post_id = reddit_url.strip('/').split('/')[-1]
+                output_filename = os.path.join(
+                    self.output_directory, f"{post_id}.mp4")
+                merge_video_audio(video_file, audio_file, output_filename)
 
-            os.remove(video_file)
-            os.remove(audio_file)
+                os.remove(video_file)
+                os.remove(audio_file)
 
-            print(f"Video downloaded with audio as {output_filename}")
-        else:
-            print(f"Unable to download video and audio for {reddit_url}")
+                update_progress(
+                    100, f"Video downloaded with audio as {output_filename}")
+            else:
+                update_progress(
+                    0, f"Unable to download video and audio for {reddit_url}")
 
 
-# Create the main window
-window_width = 720
-window_height = 300
-root = tk.Tk()
-root.title("SnooGrab")
-root.geometry(f"{window_width}x{window_height}")
+class MainWindow(QMainWindow):
+    def __init__(self):
+        super().__init__()
 
-# Create and add URL entry textbox
-url_label = tk.Label(root, text="Enter URLs (one per line):")
-url_label.grid(row=0, column=0, padx=(10, 5), pady=(10, 0), sticky="w")
+        # Create the layout and widgets
+        layout = QVBoxLayout()
 
-url_textbox = tk.Text(root, wrap=tk.WORD, width=50, height=10)
-url_textbox.grid(row=0, column=1, padx=(0, 5), pady=(10, 0), rowspan=2)
+        url_label = QLabel("Enter URLs (one per line):")
+        layout.addWidget(url_label)
 
-url_textbox_scrollbar = tk.Scrollbar(root, command=url_textbox.yview)
-url_textbox_scrollbar.grid(row=0, column=2, padx=(
-    0, 10), pady=(10, 0), rowspan=2, sticky="ns")
-url_textbox.config(yscrollcommand=url_textbox_scrollbar.set)
+        self.url_textbox = QTextEdit()
+        layout.addWidget(self.url_textbox)
 
-# Create and add output folder widgets
-output_folder_label = tk.Label(root, text="Output Folder:")
-output_folder_label.grid(row=2, column=0, padx=(10, 5),
-                         pady=(10, 0), sticky="w")
+        output_folder_label = QLabel("Output Folder:")
+        layout.addWidget(output_folder_label)
 
-output_directory_var = tk.StringVar()
-output_folder_entry = tk.Entry(
-    root, textvariable=output_directory_var, width=40)
-output_folder_entry.grid(row=2, column=1, padx=(0, 5), pady=(10, 0))
+        hbox = QHBoxLayout()
+        self.output_folder_entry = QLineEdit()
+        hbox.addWidget(self.output_folder_entry)
 
-output_folder_button = tk.Button(
-    root, text="Browse", command=browse_output_folder)
-output_folder_button.grid(row=2, column=2, padx=(0, 10), pady=(10, 0))
+        output_folder_button = QPushButton("Browse")
+        output_folder_button.clicked.connect(self.browse_output_folder)
+        hbox.addWidget(output_folder_button)
 
-# Create and add start download button
-start_download_button = tk.Button(
-    root, text="Start Download", command=start_download)
-start_download_button.grid(
-    row=3, column=0, columnspan=3, padx=10, pady=(10, 10))
+        layout.addLayout(hbox)
 
-# Add this code after the "start_button" widget
-progress_bar = tk.Canvas(root, width=window_width,
-                         height=20, bg="white", highlightthickness=0)
-progress_bar.grid(row=4, column=0, columnspan=3,
-                  padx=10, pady=(10, 0), sticky="ew")
+        self.start_download_button = QPushButton("Start Download")
+        self.start_download_button.clicked.connect(self.start_download)
+        layout.addWidget(self.start_download_button)
 
-# Start the application
-root.mainloop()
+        self.progress_bar = QProgressBar()
+        layout.addWidget(self.progress_bar)
+
+        central_widget = QWidget()
+        central_widget.setLayout(layout)
+        self.setCentralWidget(central_widget)
+
+        self.setWindowTitle("SnooGrab")
+        self.setGeometry(100, 100, 720, 480)
+
+    def browse_output_folder(self):
+        output_directory = QFileDialog.getExistingDirectory()
+        self.output_folder_entry.setText(output_directory)
+
+    def start_download(self):
+        output_directory = self.output_folder_entry.text()
+        reddit_urls = self.url_textbox.toPlainText().splitlines()
+
+        self.download_thread = DownloadThread(reddit_urls, output_directory)
+        self.download_thread.progress.connect(self.update_progress)
+        self.download_thread.start()
+
+    def update_progress(self, progress, text):
+        self.progress_bar.setValue(progress)
+        self.progress_bar.setFormat(f"{text}")
+
+
+if __name__ == "__main__":
+    app = QApplication([])
+    mainWin = MainWindow()
+    mainWin.show()
+    app.exec()
