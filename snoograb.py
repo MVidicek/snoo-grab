@@ -2,8 +2,8 @@ import os
 import requests
 import subprocess
 import praw
-from PyQt6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QHBoxLayout, QLabel, QTextEdit, QLineEdit, QPushButton, QProgressBar, QFileDialog, QWidget
-from PyQt6.QtCore import Qt, QThread, pyqtSignal
+from PyQt6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QHBoxLayout, QLabel, QTextEdit, QLineEdit, QPushButton, QProgressBar, QFileDialog, QWidget, QMessageBox
+from PyQt6.QtCore import QThread, pyqtSignal
 
 reddit = praw.Reddit()
 
@@ -66,6 +66,10 @@ class DownloadThread(QThread):
         def update_progress(progress, text):
             self.progress.emit(progress, text)
 
+        # Each video has a video file and an audio file
+        total_files = len(self.reddit_urls) * 2
+        completed_files = 0
+
         for reddit_url in self.reddit_urls:
             update_progress(0, f"Processing {reddit_url}")
             video_url, audio_url = get_video_url(reddit_url)
@@ -77,9 +81,12 @@ class DownloadThread(QThread):
                     self.output_directory, "temp_audio.mp4")
 
                 download_video(video_url, video_file, lambda p,
-                               t: update_progress(p, t))
+                               t: update_progress((completed_files + p/100) / total_files * 100, t))
+                completed_files += 1
+
                 download_video(audio_url, audio_file, lambda p,
-                               t: update_progress(p, t))
+                               t: update_progress((completed_files + p/100) / total_files * 100, t))
+                completed_files += 1
 
                 post_id = reddit_url.strip('/').split('/')[-1]
                 output_filename = os.path.join(
@@ -89,19 +96,23 @@ class DownloadThread(QThread):
                 os.remove(video_file)
                 os.remove(audio_file)
 
-                update_progress(
-                    100, f"Video downloaded with audio as {output_filename}")
             else:
                 update_progress(
                     0, f"Unable to download video and audio for {reddit_url}")
+
+        update_progress(
+            100, f"All videos downloaded successfully.")
 
 
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
 
-        # Create the layout and widgets
+       # Create the layout and widgets
         layout = QVBoxLayout()
+        # Set margins (left, top, right, bottom)
+        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setSpacing(15)  # Set spacing between widgets
 
         url_label = QLabel("Enter URLs (one per line):")
         layout.addWidget(url_label)
@@ -126,8 +137,17 @@ class MainWindow(QMainWindow):
         self.start_download_button.clicked.connect(self.start_download)
         layout.addWidget(self.start_download_button)
 
+        progress_layout = QVBoxLayout()  # Create a new layout for the progress bar and text
         self.progress_bar = QProgressBar()
-        layout.addWidget(self.progress_bar)
+        # The text will now be displayed in a separate QLabel
+        self.progress_bar.setTextVisible(False)
+        progress_layout.addWidget(self.progress_bar)
+
+        self.progress_text = QLabel()  # This QLabel will display the progress text
+        progress_layout.addWidget(self.progress_text)
+
+        # Add the progress layout to the main layout
+        layout.addLayout(progress_layout)
 
         central_widget = QWidget()
         central_widget.setLayout(layout)
@@ -135,6 +155,14 @@ class MainWindow(QMainWindow):
 
         self.setWindowTitle("SnooGrab")
         self.setGeometry(100, 100, 720, 480)
+
+    def update_progress(self, progress, text):
+        self.progress_bar.setValue(progress)
+        self.progress_text.setText(f"{text}")
+
+    def download_finished(self):
+        QMessageBox.information(self, "Download Complete",
+                                "All videos have been downloaded.")
 
     def browse_output_folder(self):
         output_directory = QFileDialog.getExistingDirectory()
@@ -146,11 +174,8 @@ class MainWindow(QMainWindow):
 
         self.download_thread = DownloadThread(reddit_urls, output_directory)
         self.download_thread.progress.connect(self.update_progress)
+        self.download_thread.finished.connect(self.download_finished)
         self.download_thread.start()
-
-    def update_progress(self, progress, text):
-        self.progress_bar.setValue(progress)
-        self.progress_bar.setFormat(f"{text}")
 
 
 if __name__ == "__main__":
