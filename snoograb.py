@@ -2,6 +2,7 @@ import os
 import requests
 import subprocess
 import praw
+from styles import light, dark
 from PyQt6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QHBoxLayout, QLabel, QTextEdit, QLineEdit, QPushButton, QProgressBar, QFileDialog, QWidget, QMessageBox
 from PyQt6.QtCore import QThread, pyqtSignal
 
@@ -115,6 +116,15 @@ class MainWindow(QMainWindow):
         layout.setContentsMargins(20, 20, 20, 20)
         layout.setSpacing(15)  # Set spacing between widgets
 
+        # Add a button to switch themes
+        self.theme_button = QPushButton("Switch theme")
+        self.theme_button.clicked.connect(self.switch_theme)
+        layout.addWidget(self.theme_button)
+
+        # Initialize to the light theme
+        self.theme = "light"
+        self.setStyleSheet(light.stylesheet)
+
         url_label = QLabel("Enter URLs (one per line):")
         layout.addWidget(url_label)
 
@@ -156,6 +166,14 @@ class MainWindow(QMainWindow):
 
         self.setWindowTitle("SnooGrab")
         self.setGeometry(100, 100, 720, 480)
+
+    def switch_theme(self):
+        if self.theme == "light":
+            self.setStyleSheet(dark.stylesheet)
+            self.theme = "dark"
+        else:
+            self.setStyleSheet(light.stylesheet)
+            self.theme = "light"
 
     def update_progress(self, progress, text):
         self.progress_bar.setValue(progress)
