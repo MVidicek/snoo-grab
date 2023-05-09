@@ -43,6 +43,7 @@ def get_video_url(reddit_url):
 def merge_video_audio(video_file, audio_file, output_file):
     command = [
         'ffmpeg',
+        '-y',
         '-i', video_file,
         '-i', audio_file,
         '-c:v', 'copy',
@@ -168,13 +169,36 @@ class MainWindow(QMainWindow):
         output_directory = QFileDialog.getExistingDirectory()
         self.output_folder_entry.setText(output_directory)
 
+    def enable_download_button(self):
+        self.start_download_button.setDisabled(False)
+
     def start_download(self):
         output_directory = self.output_folder_entry.text()
         reddit_urls = self.url_textbox.toPlainText().splitlines()
 
+        # Check if any file already exists
+        for reddit_url in reddit_urls:
+            post_id = reddit_url.strip('/').split('/')[-1]
+            output_filename = os.path.join(output_directory, f"{post_id}.mp4")
+            if os.path.exists(output_filename):
+                msg = QMessageBox()
+                msg.setIcon(QMessageBox.Icon.Warning)  # Corrected this line
+                msg.setText("File already exists")
+                msg.setInformativeText(
+                    f"Do you want to overwrite {output_filename}?")
+                msg.setWindowTitle("File Overwrite Confirmation")
+                # Corrected this line
+                msg.setStandardButtons(
+                    QMessageBox.StandardButton.Ok | QMessageBox.StandardButton.Cancel)
+
+                returnValue = msg.exec()
+                if returnValue == QMessageBox.StandardButton.Cancel:  # Corrected this line
+                    return
+
+        self.start_download_button.setDisabled(True)
         self.download_thread = DownloadThread(reddit_urls, output_directory)
+        self.download_thread.finished.connect(self.enable_download_button)
         self.download_thread.progress.connect(self.update_progress)
-        self.download_thread.finished.connect(self.download_finished)
         self.download_thread.start()
 
 
