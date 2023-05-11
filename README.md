@@ -43,13 +43,7 @@ Alternatively, you can download the repository as a ZIP file and extract it.
 4. Click on "Create app" at the bottom of the form.
 5. Note down the client ID (found under the app name) and the client secret.
 
-Update the `CLIENT_ID`, `CLIENT_SECRET`, and `USER_AGENT` variables in the script with the corresponding values from the Reddit app you created:
-
-```python
-CLIENT_ID = 'your_client_id'
-CLIENT_SECRET = 'your_client_secret'
-USER_AGENT = 'your_user_agent'  # e.g., 'SnooGrab:v1.0 (by u/your_username)'
-```
+Update the settings in the GUI to match your ID, Secret, Password and Username.
 
 ### Installing FFmpeg
 
@@ -124,6 +118,7 @@ After completing the installation, you can use SnooGrab as follows:
 python snoograb.py
 ```
 Add the urls inside the Text Box (separate lines), choose the download directory and press the "Start" button to begin the download process.
+Don't forget to check the settings to set your credentials.
 
 ## License
 This project is licensed under the GNU General Public License v3.0. See the LICENSE file for details.
